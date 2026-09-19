@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # База данных PostgreSQL
+  db:
+    image: postgres:15-alpine
+    
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: prolotbot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Наш Go-бот
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+   
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy # Ждет, пока БД не станет доступна
+    env_file:
+      - .env # Загружает переменные из твоего .env файла
+    environment:
+      # Дублируем для надежности, чтобы Docker знал, откуда брать URL
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/prolotbot?sslmode=disable
+    volumes:
+      - ./logs:/root/logs # Сохраняем логи на хост-машине
+    ports:                # ← ПРАВИЛЬНО! Внутри bot:
+      - "8080:8080"     
+
+volumes:
+  postgres_data:

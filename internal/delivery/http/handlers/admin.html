@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProLotBot — Админ-панель</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --muted:#94a3b8; --fg:#e2e8f0; --accent:#38bdf8; --danger:#f87171; --ok:#4ade80; --border:#334155; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+    header { padding:16px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+    header h1 { font-size:18px; margin:0; }
+    main { max-width:1100px; margin:0 auto; padding:24px; }
+    .hidden { display:none !important; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:20px; }
+    .card h2 { margin:0 0 16px; font-size:15px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+    input, select, button { font:inherit; }
+    input, select { background:var(--bg); border:1px solid var(--border); color:var(--fg); border-radius:8px; padding:9px 12px; }
+    label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .row > div { flex:1; min-width:180px; }
+    button { background:var(--accent); border:none; color:#04263a; font-weight:600; border-radius:8px; padding:9px 16px; cursor:pointer; }
+    button.secondary { background:transparent; border:1px solid var(--border); color:var(--fg); font-weight:500; }
+    button.danger { background:transparent; border:1px solid var(--danger); color:var(--danger); font-weight:500; padding:5px 10px; }
+    button:hover { opacity:.9; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; }
+    .stat { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:16px; }
+    .stat .n { font-size:28px; font-weight:700; }
+    .stat .l { font-size:13px; color:var(--muted); margin-top:4px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; }
+    .badge { padding:2px 8px; border-radius:99px; font-size:12px; font-weight:600; }
+    .badge.sent { background:rgba(74,222,128,.15); color:var(--ok); }
+    .badge.unsent { background:rgba(248,113,113,.15); color:var(--danger); }
+    .toolbar { display:flex; gap:12px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+    .msg { font-size:13px; margin-top:8px; min-height:16px; }
+    .msg.err { color:var(--danger); }
+    .msg.ok { color:var(--ok); }
+    a { color:var(--accent); }
+    .login-wrap { max-width:360px; margin:80px auto; }
+    .muted { color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+
+  <!-- ЭКРАН ЛОГИНА -->
+  <div id="login" class="login-wrap">
+    <div class="card">
+      <h2>Вход в админку</h2>
+      <label for="pwd">Пароль</label>
+      <input id="pwd" type="password" style="width:100%" placeholder="••••••••" autofocus />
+      <button id="loginBtn" style="width:100%; margin-top:14px">Войти</button>
+      <div id="loginMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+  <div id="app" class="hidden">
+    <header>
+      <h1>🤖 ProLotBot — админ-панель</h1>
+      <button id="logoutBtn" class="secondary">Выйти</button>
+    </header>
+    <main>
+
+      <div class="card">
+        <h2>Статистика</h2>
+        <div id="stats" class="stats"></div>
+        <div id="lastParse" class="muted" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h2>Настройки бота</h2>
+        <div class="row">
+          <div>
+            <label for="poll">Опрашивать сайт каждые (минут)</label>
+            <input id="poll" type="number" min="1" style="width:100%" />
+          </div>
+          <div>
+            <label for="cats">Категории (через запятую)</label>
+            <input id="cats" type="text" style="width:100%" placeholder="2,13,14" />
+          </div>
+        </div>
+        <button id="saveCfg" style="margin-top:14px">Сохранить настройки</button>
+        <div id="cfgMsg" class="msg"></div>
+        <div class="muted" style="margin-top:8px">Новый интервал применится на следующем цикле опроса.</div>
+      </div>
+
+      <div class="card">
+        <h2>Лоты</h2>
+        <div class="toolbar">
+          <select id="filter">
+            <option value="">Все</option>
+            <option value="false">Не отправленные</option>
+            <option value="true">Отправленные</option>
+          </select>
+          <button id="refresh" class="secondary">Обновить</button>
+          <span id="pageInfo" class="muted" style="margin-left:auto"></span>
+          <button id="prev" class="secondary">←</button>
+          <button id="next" class="secondary">→</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Название</th><th>Цена</th><th>Год</th><th>Город</th><th>Статус</th><th></th></tr>
+          </thead>
+          <tbody id="lotsBody"></tbody>
+        </table>
+        <div id="lotsMsg" class="msg"></div>
+      </div>
+
+    </main>
+  </div>
+
+<script>
+const API = "/api/v1";
+let token = localStorage.getItem("token") || "";
+let page = 1;
+const limit = 20;
+
+function show(el, on) { document.getElementById(el).classList.toggle("hidden", !on); }
+function setMsg(id, text, kind) { const e = document.getElementById(id); e.textContent = text || ""; e.className = "msg" + (kind ? " " + kind : ""); }
+
+async function api(path, opts = {}) {
+  opts.headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+  if (token) opts.headers["Authorization"] = "Bearer " + token;
+  const res = await fetch(API + path, opts);
+  if (res.status === 401) { logout(); throw new Error("Не авторизован"); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ("Ошибка " + res.status));
+  return data;
+}
+
+function showApp() { show("login", false); show("app", true); loadAll(); }
+function logout() { token = ""; localStorage.removeItem("token"); show("app", false); show("login", true); }
+
+async function login() {
+  const pwd = document.getElementById("pwd").value;
+  setMsg("loginMsg", "Проверяем…");
+  try {
+    const res = await fetch(API + "/auth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pwd })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Неверный пароль");
+    token = data.token;
+    localStorage.setItem("token", token);
+    setMsg("loginMsg", "");
+    showApp();
+  } catch (e) { setMsg("loginMsg", e.message, "err"); }
+}
+
+async function loadDashboard() {
+  const d = await api("/dashboard");
+  const cards = [
+    ["Всего лотов", d.total_lots],
+    ["Отправлено", d.sent_lots],
+    ["Не отправлено", d.unsent_lots],
+    ["Изменений цен", d.price_changes],
+  ];
+  document.getElementById("stats").innerHTML = cards
+    .map(([l, n]) => `<div class="stat"><div class="n">${n ?? 0}</div><div class="l">${l}</div></div>`).join("");
+  document.getElementById("lastParse").textContent =
+    d.last_parse ? ("Последний новый лот: " + new Date(d.last_parse).toLocaleString("ru-RU")) : "Лотов пока нет";
+}
+
+async function loadConfig() {
+  const c = await api("/config");
+  document.getElementById("poll").value = c.poll_interval_minutes ?? "";
+  document.getElementById("cats").value = (c.categories || []).join(",");
+}
+
+async function saveConfig() {
+  setMsg("cfgMsg", "Сохраняем…");
+  const poll = parseInt(document.getElementById("poll").value, 10);
+  const cats = document.getElementById("cats").value.split(",").map(s => s.trim()).filter(Boolean);
+  try {
+    await api("/config", { method: "PUT", body: JSON.stringify({ poll_interval_minutes: poll, categories: cats }) });
+    setMsg("cfgMsg", "Сохранено ✓", "ok");
+  } catch (e) { setMsg("cfgMsg", e.message, "err"); }
+}
+
+async function loadLots() {
+  const sent = document.getElementById("filter").value;
+  let path = `/lots?page=${page}&limit=${limit}`;
+  if (sent) path += `&sent=${sent}`;
+  setMsg("lotsMsg", "Загрузка…");
+  try {
+    const res = await api(path);
+    const rows = (res.data || []).map(lot => `
+      <tr>
+        <td><a href="${lot.url}" target="_blank" rel="noopener">${lot.title || lot.id}</a></td>
+        <td>${lot.price || "—"}</td>
+        <td>${lot.year || "—"}</td>
+        <td>${lot.location || "—"}</td>
+        <td><span class="badge ${lot.is_sent ? "sent" : "unsent"}">${lot.is_sent ? "отправлен" : "ожидает"}</span></td>
+        <td><button class="danger" data-id="${lot.id}">Удалить</button></td>
+      </tr>`).join("");
+    document.getElementById("lotsBody").innerHTML = rows || `<tr><td colspan="6" class="muted">Нет лотов</td></tr>`;
+    const p = res.pagination || {};
+    document.getElementById("pageInfo").textContent = `Стр. ${p.page || 1} из ${p.pages || 1} · всего ${p.total || 0}`;
+    setMsg("lotsMsg", "");
+    document.querySelectorAll("#lotsBody button[data-id]").forEach(b =>
+      b.addEventListener("click", () => deleteLot(b.dataset.id)));
+  } catch (e) { setMsg("lotsMsg", e.message, "err"); }
+}
+
+async function deleteLot(id) {
+  if (!confirm("Удалить лот " + id + "?")) return;
+  try { await api("/lots/" + encodeURIComponent(id), { method: "DELETE" }); loadLots(); loadDashboard(); }
+  catch (e) { setMsg("lotsMsg", e.message, "err"); }
+}
+
+function loadAll() { loadDashboard().catch(()=>{}); loadConfig().catch(()=>{}); loadLots(); }
+
+document.getElementById("loginBtn").addEventListener("click", login);
+document.getElementById("pwd").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+document.getElementById("logoutBtn").addEventListener("click", logout);
+document.getElementById("saveCfg").addEventListener("click", saveConfig);
+document.getElementById("refresh").addEventListener("click", () => { page = 1; loadLots(); });
+document.getElementById("filter").addEventListener("change", () => { page = 1; loadLots(); });
+document.getElementById("prev").addEventListener("click", () => { if (page > 1) { page--; loadLots(); } });
+document.getElementById("next").addEventListener("click", () => { page++; loadLots(); });
+
+if (token) showApp(); else { show("login", true); show("app", false); }
+</script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: Pro-Lot Bot Admin API
+  description: |
+    REST API для управления Telegram-ботом мониторинга автомобильных лотов.
+    
+    ## Аутентификация
+    Большинство эндпоинтов требуют JWT токен. Получите его через `/api/v1/auth/login`.
+    
+    ```
+    Authorization: Bearer <your_token>
+    ```
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@prolotbot.com
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+
+tags:
+  - name: Auth
+    description: Аутентификация
+  - name: Dashboard
+    description: Дашборд и статистика
+  - name: Lots
+    description: Управление лотами
+  - name: Config
+    description: Конфигурация бота
+  - name: Control
+    description: Управление парсингом
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [System]
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /api/v1/auth/login:
+    post:
+      summary: Логин в админку
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  example: admin123
+      responses:
+        '200':
+          description: Успешный логин
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  expires_at:
+                    type: integer
+        '401':
+          description: Неверный пароль
+
+  /api/v1/dashboard:
+    get:
+      summary: Общая статистика
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Статистика
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_lots:
+                    type: integer
+                  sent_lots:
+                    type: integer
+                  unsent_lots:
+                    type: integer
+                  last_parse:
+                    type: string
+                    format: date-time
+
+  /api/v1/lots:
+    get:
+      summary: Список лотов
+      tags: [Lots]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список лотов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Lot'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /api/v1/lots/{id}:
+    get:
+      summary: Детали лота
+      tags: [Lots]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали лота
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lot'
+
+  /api/v1/parse/trigger:
+    post:
+      summary: Запустить парсинг вручную
+      tags: [Control]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Парсинг запущен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: triggered
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Lot:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        price:
+          type: string
+        year:
+          type: integer
+        location:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        is_sent:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        pages:
+          type: integer
