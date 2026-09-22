@@ -40,8 +40,8 @@ func FormatLotMessage(lot domain.Lot) string {
 		if newPrice == "" {
 			newPrice = "не указана"
 		}
-		msg += fmt.Sprintf("\n💰 Старая цена - %s\n", lot.PreviousPrice)
-		msg += fmt.Sprintf("💰 Новая цена - %s\n", newPrice)
+		msg += fmt.Sprintf("<s>💰 Старая цена - %s</s>\n", lot.PreviousPrice)
+		msg += fmt.Sprintf("<b>💰 Новая цена - %s</b>\n", newPrice)
 	} else if price != "" {
 		msg += fmt.Sprintf("\n💰 Цена - %s\n", price)
 	} else {

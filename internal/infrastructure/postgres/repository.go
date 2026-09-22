@@ -168,7 +168,7 @@ func (r *PostgresRepository) UpdateLotPrice(ctx context.Context, lotID, price st
 }
 
 func (r *PostgresRepository) Close() {
-	logger.Get().Info("🔌 Подключение к базе данных закрыто")
+	logger.Get().Info("Подключение к базе данных закрыто")
 	r.pool.Close()
 }
 

@@ -1,77 +1,38 @@
 package config
 
 import (
-	"fmt"
-	"os"
-	"strconv"
-	"strings"
 	"time"
+
+	"github.com/caarlos0/env/v11"
 )
 
 type Config struct {
-	TelegramToken  string
-	TelegramChatID int64
-	Categories     []string
-	PollInterval   time.Duration
-	DatabaseURL    string
+	// required означает, что без этой переменной бот не запустится
+	TelegramToken  string `env:"TELEGRAM_TOKEN,required"`
+	TelegramChatID int64  `env:"TELEGRAM_CHAT_ID,required"`
+	JWTSecret      string `env:"JWT_SECRET,required"`
 
-	AdminPassword string
-	JWTSecret     string
-	HTTPPort      string
+	// envDefault подставляет значение, если переменной нет в .env
+	Categories    []string      `env:"CATEGORIES" envDefault:"2,13,14,15,16,17,18" envSeparator:","`
+	PollInterval  time.Duration `env:"POLL_INTERVAL_MINUTES" envDefault:"15"`
+	DatabaseURL   string        `env:"DATABASE_URL" envDefault:"postgres://postgres:postgres@localhost:5432/prolotbot?sslmode=disable"`
+	AdminPassword string        `env:"ADMIN_PASSWORD" envDefault:"admin123"`
+	HTTPPort      string        `env:"HTTP_PORT" envDefault:":8080"`
 }
 
+// Небольшая коррекция: caarlos0/env парсит time.Duration из строк вида "15m", "1h".
+// Если у тебя в .env написано просто число "15", лучше явно указать это в коде после парсинга:
 func Load() (*Config, error) {
-	telegramToken := os.Getenv("TELEGRAM_TOKEN")
-	if telegramToken == "" {
-		return nil, fmt.Errorf("TELEGRAM_TOKEN is not set")
+	cfg := &Config{}
+	if err := env.Parse(cfg); err != nil {
+		return nil, err
 	}
 
-	telegramChatID, err := strconv.ParseInt(os.Getenv("TELEGRAM_CHAT_ID"), 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid TELEGRAM_CHAT_ID: %w", err)
+	// Хак: если PollInterval пришел как 15 (наносекунд), значит в .env было просто число.
+	// Умножаем на минуту.
+	if cfg.PollInterval < time.Minute {
+		cfg.PollInterval = cfg.PollInterval * time.Minute
 	}
 
-	categoriesStr := os.Getenv("CATEGORIES")
-	if categoriesStr == "" {
-		categoriesStr = "2,13,14,15,16,17,18"
-	}
-	categories := strings.Split(categoriesStr, ",")
-
-	pollIntervalMinutes := 5
-	if intervalStr := os.Getenv("POLL_INTERVAL_MINUTES"); intervalStr != "" {
-		if interval, err := strconv.Atoi(intervalStr); err == nil {
-			pollIntervalMinutes = interval
-		}
-	}
-
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		databaseURL = "postgres://postgres:postgres@localhost:5432/prolotbot?sslmode=disable"
-	}
-
-	adminPassword := os.Getenv("ADMIN_PASSWORD")
-	if adminPassword == "" {
-		adminPassword = "admin123" // дефолт только для локальной разработки
-	}
-
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		return nil, fmt.Errorf("JWT_SECRET is not set")
-	}
-
-	httpPort := os.Getenv("HTTP_PORT")
-	if httpPort == "" {
-		httpPort = ":8080"
-	}
-
-	return &Config{
-		TelegramToken:  telegramToken,
-		TelegramChatID: telegramChatID,
-		Categories:     categories,
-		PollInterval:   time.Duration(pollIntervalMinutes) * time.Minute,
-		DatabaseURL:    databaseURL,
-		AdminPassword:  adminPassword,
-		JWTSecret:      jwtSecret,
-		HTTPPort:       httpPort,
-	}, nil
+	return cfg, nil
 }

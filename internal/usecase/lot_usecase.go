@@ -46,7 +46,7 @@ func (u *LotUsecase) GetNewLots(ctx context.Context) ([]domain.Lot, error) {
 		if u.repository.HasLot(ctx, lot.ID) {
 			oldPrice, exists := u.repository.GetLotPrice(ctx, lot.ID)
 			if exists && oldPrice != lot.Price {
-				log.Infow("💰 Цена изменилась для лота",
+				log.Infow("Цена изменилась для лота",
 					"lot_id", lot.ID,
 					"old_price", oldPrice,
 					"new_price", lot.Price,
@@ -54,7 +54,7 @@ func (u *LotUsecase) GetNewLots(ctx context.Context) ([]domain.Lot, error) {
 
 				err := u.repository.UpdateLotPrice(ctx, lot.ID, lot.Price)
 				if err != nil {
-					log.Errorw("⚠️ Ошибка обновления цены лота", "lot_id", lot.ID, "error", err)
+					log.Errorw("Ошибка обновления цены лота", "lot_id", lot.ID, "error", err)
 					continue
 				}
 
@@ -62,13 +62,13 @@ func (u *LotUsecase) GetNewLots(ctx context.Context) ([]domain.Lot, error) {
 				updatedCount++
 			}
 		} else {
-			log.Infow("✨ Обнаружен новый лот", "lot_id", lot.ID)
+			log.Infow("Обнаружен новый лот", "lot_id", lot.ID)
 
 			// ПЕРЕДАЕМ ЧИСТЫЙ domain.Lot!
 			// Репозиторий сам разберется, как его сохранить.
 			err := u.repository.AddLot(ctx, lot)
 			if err != nil {
-				log.Errorw("⚠️ Ошибка добавления лота в БД", "lot_id", lot.ID, "error", err)
+				log.Errorw("Ошибка добавления лота в БД", "lot_id", lot.ID, "error", err)
 				continue
 			}
 
@@ -77,7 +77,7 @@ func (u *LotUsecase) GetNewLots(ctx context.Context) ([]domain.Lot, error) {
 		}
 	}
 
-	log.Infow("📊 Анализ лотов завершен",
+	log.Infow("Анализ лотов завершен",
 		"total_to_send", len(lotsToSend),
 		"new_lots", newCount,
 		"updated_lots", updatedCount,
@@ -112,26 +112,26 @@ func (u *LotUsecase) SyncWithWebsite(ctx context.Context) ([]domain.SentMessageR
 		if u.repository.HasLot(ctx, lot.ID) {
 			oldPrice, exists := u.repository.GetLotPrice(ctx, lot.ID)
 			if exists && oldPrice != lot.Price {
-				log.Infow("💰 Цена изменилась", "lot_id", lot.ID, "old_price", oldPrice, "new_price", lot.Price)
+				log.Infow("Цена изменилась", "lot_id", lot.ID, "old_price", oldPrice, "new_price", lot.Price)
 				// UpdateLotPrice сохранит старую цену и выставит is_sent = false,
 				// чтобы лот переслался с уведомлением «старая/новая цена».
 				u.repository.UpdateLotPrice(ctx, lot.ID, lot.Price)
 			}
 		} else {
-			log.Infow("✨ Обнаружен новый лот", "lot_id", lot.ID)
+			log.Infow("Обнаружен новый лот", "lot_id", lot.ID)
 			if err := u.repository.AddLot(ctx, lot); err != nil { // Внутри AddLot is_sent = false
-				log.Errorw("⚠️ Ошибка добавления лота в БД", "lot_id", lot.ID, "error", err)
+				log.Errorw("Ошибка добавления лота в БД", "lot_id", lot.ID, "error", err)
 			}
 		}
 	}
 
 	// Удаляем лоты, которых больше нет на сайте — ТОЛЬКО если парсингу можно доверять.
 	if !result.Complete {
-		log.Warn("⚠️ Парсинг неполный (ошибка страницы или не дошли до конца) — удаление снятых лотов пропущено")
+		log.Warn("Парсинг неполный (ошибка страницы или не дошли до конца) — удаление снятых лотов пропущено")
 		return nil, nil
 	}
 	if len(result.SeenIDs) == 0 {
-		log.Warn("⚠️ Парсинг вернул 0 лотов — удаление пропущено (защита от очистки всей базы)")
+		log.Warn("Парсинг вернул 0 лотов — удаление пропущено (защита от очистки всей базы)")
 		return nil, nil
 	}
 
@@ -141,7 +141,7 @@ func (u *LotUsecase) SyncWithWebsite(ctx context.Context) ([]domain.SentMessageR
 		return nil, nil // не срываем цикл рассылки из-за ошибки удаления
 	}
 	if len(removedIDs) > 0 {
-		log.Infow("🗑 Удалены лоты, которых больше нет на сайте", "count", len(removedIDs), "ids", removedIDs)
+		log.Infow("Удалены лоты, которых больше нет на сайте", "count", len(removedIDs), "ids", removedIDs)
 	}
 	return refs, nil
 }

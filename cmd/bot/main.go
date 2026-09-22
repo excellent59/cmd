@@ -10,7 +10,6 @@ import (
 	"pro-lot-bot/internal/delivery/scheduler"
 	"pro-lot-bot/internal/delivery/scraper"
 	"pro-lot-bot/internal/delivery/telegram"
-	"pro-lot-bot/internal/domain"
 	"pro-lot-bot/internal/infrastructure/postgres"
 	"pro-lot-bot/internal/logger"
 	"pro-lot-bot/internal/usecase"
@@ -51,7 +50,7 @@ func main() {
 	if err := postgres.RunMigrations(cfg.DatabaseURL, "file://migrations"); err != nil {
 		log.Fatalw("Ошибка выполнения миграций", "error", err)
 	}
-	log.Info("✅ Миграции базы данных успешно применены")
+	log.Info("Миграции базы данных успешно применены")
 
 	repo, err := postgres.NewPostgresRepository(ctx, cfg.DatabaseURL, cfg.Categories)
 	if err != nil {
@@ -59,7 +58,7 @@ func main() {
 	}
 	defer repo.Close()
 
-	log.Info("✅ Подключение к базе данных успешно установлено")
+	log.Info("Подключение к базе данных успешно установлено")
 
 	// 5. Инициализация Telegram бота (Delivery)
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
@@ -75,28 +74,13 @@ func main() {
 	// UseCase не знает ни о postgres, ни о scraper, он знает только интерфейсы!
 	uc := usecase.NewLotUsecase(webScraper, repo)
 
-	// Инициализируем настройки в БД из .env, если их ещё нет
-	// (дальше ими управляет админка, а планировщик читает их на лету).
-	if _, err := uc.GetSettings(ctx); err != nil {
-		if err := uc.SaveSettings(ctx, domain.Settings{
-			PollInterval: cfg.PollInterval,
-			Categories:   cfg.Categories,
-		}); err != nil {
-			log.Warnw("Не удалось инициализировать настройки в БД", "error", err)
-		}
-	}
-
-	// Актуальный интервал берём из БД (мог быть изменён через админку).
-	pollInterval := cfg.PollInterval
-	if st, err := uc.GetSettings(ctx); err == nil && st.PollInterval > 0 {
-		pollInterval = st.PollInterval
-	}
-
 	// 8. Инициализация обработчика и планировщика (Delivery)
 	handler := telegram.NewBotHandler(bot, uc, cfg.TelegramChatID)
-	sched := scheduler.NewScheduler(handler, uc, pollInterval)
 
-	log.Info("🚀 Запуск бота pro-lot...")
+	// Используем интервал напрямую из .env (Single Source of Truth)
+	sched := scheduler.NewScheduler(handler, uc, cfg.PollInterval)
+
+	log.Info("Запуск бота pro-lot...")
 
 	httpRouter := httpDelivery.NewRouter(uc, cfg)
 
@@ -109,7 +93,7 @@ func main() {
 	}
 
 	go func() {
-		log.Infow("🌐 HTTP API запущен", "port", cfg.HTTPPort)
+		log.Infow("HTTP API запущен", "port", cfg.HTTPPort)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalw("Ошибка HTTP сервера", "error", err)
 		}
@@ -124,7 +108,7 @@ func main() {
 
 	go func() {
 		<-sigChan
-		log.Warn("🛑 Получен сигнал завершения. Начинаем безопасную остановку...")
+		log.Warn("Получен сигнал завершения. Начинаем безопасную остановку...")
 		cancel()
 
 		// Останавливаем HTTP сервер

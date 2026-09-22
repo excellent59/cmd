@@ -3,6 +3,7 @@ module pro-lot-bot
 go 1.26.5
 
 require (
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/render v1.0.3
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1

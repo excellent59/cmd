@@ -489,10 +489,10 @@ func (w *WebScraper) GetLots(ctx context.Context, filter domain.LotFilter) (doma
 				}
 			})
 
-			log.Debugw("Парсинг лота",
-				"lot_id", tempLot.ID,
-				"url", link,
-			)
+			// log.Debugw("Парсинг лота",
+			// 	"lot_id", tempLot.ID,
+			// 	"url", link,
+			// )
 			err := detailCollector.Visit(link)
 			if err != nil {
 				log.Errorw("Ошибка парсинга лота",
@@ -505,13 +505,13 @@ func (w *WebScraper) GetLots(ctx context.Context, filter domain.LotFilter) (doma
 
 			if tempLot.Title != "" || tempLot.Price != "" {
 				lots = append(lots, tempLot)
-				log.Infow("Лот успешно распарсен",
-					"lot_id", tempLot.ID,
-					"title", tempLot.Title,
-					"price", tempLot.Price,
-					"location", tempLot.Location,
-					"images_count", len(tempLot.Images),
-				)
+				// 	log.Infow("Лот успешно распарсен",
+				// 		"lot_id", tempLot.ID,
+				// 		"title", tempLot.Title,
+				// 		"price", tempLot.Price,
+				// 		"location", tempLot.Location,
+				// 		"images_count", len(tempLot.Images),
+				// 	)
 			}
 
 			select {
